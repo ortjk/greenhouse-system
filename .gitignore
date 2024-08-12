@@ -1,0 +1,2 @@
+# Server (python flask) ignores
+/Server/__pycache__
