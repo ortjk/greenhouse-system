@@ -1,2 +1,26 @@
-# Server (python flask) ignores
-/server/__pycache__
+# frontend (react js) ignores
+## dependencies
+greenhouse-website/node_modules
+greenhouse-website/.pnp
+greenhouse-website/.pnp.js
+
+## testing
+greenhouse-website/coverage
+
+## production
+greenhouse-website/build
+
+## misc
+greenhouse-website/.DS_Store
+greenhouse-website/.env.local
+greenhouse-website/.env.development.local
+greenhouse-website/.env.test.local
+greenhouse-website/.env.production.local
+
+greenhouse-website/npm-debug.log*
+greenhouse-website/yarn-debug.log*
+greenhouse-website/yarn-error.log*
+
+# server (python flask) ignores
+greenhouse-website/instance
+greenhouse-website/server/__pycache__
