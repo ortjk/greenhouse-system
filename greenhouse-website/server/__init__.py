@@ -1,10 +1,15 @@
 import os
+import time
 from subprocess import Popen, PIPE, TimeoutExpired
-from flask import Flask, request, render_template
-from .encoding_f import encode_input, decode_output
+from flask import Flask, request
+
+from server.database import get_arduino_conf, set_arduino_conf, get_graph_data
 
 def create_app(test_config=None):
-    
+    # start communication with arduino
+    # arduino_io = Popen(["python3", "server/arduino/arduino_connection.py"], stdin=PIPE, stdout=PIPE)
+
+
     # create and configure the app
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_mapping(
@@ -24,38 +29,31 @@ def create_app(test_config=None):
     except OSError:
         pass
 
-    @app.route("/communicate", method=["GET", "POST"])
-    def communicate():
-        # start communication with arduino
-        arduino_io = Popen(["python3", "server/arduino_connection.py"], stdin=PIPE, stdout=PIPE)
-        instructions = None # empty instructions set
-        output = None
+    @app.route("/set-config", methods=["POST"])
+    def set_config():
+        # get information from form
+        manual_enabled = request.form.get("enableManualCheck")
+        manual_open = request.form.get("openWindowCheck")
 
-        if request.method == "POST":
-            # get information from form
-            manual_enabled = request.form.get("enableManualCheck")
-            force_open = request.form.get("openWindowCheck")
-            manual_open = 0 # 0b00
-            if manual_enabled and force_open:
-                manual_open = 3 # 0b11
-            elif manual_enabled:
-                manual_open = 2 # 0b10
+        open_temp = request.form.get("openTemperatureValue")
+        close_temp = request.form.get("closeTemperatureValue")
 
-            open_temperature = request.form.get("openTemperatureValue")
-            close_temperature = request.form.get("closeTemperatureValue")
-            
-            instructions = {
-                "manual_open": manual_open,
-                "open_temperature": open_temperature,
-                "close_temperature": close_temperature
-            }
+        # save information to database
+        set_arduino_conf(manual_enabled, manual_open, open_temp, close_temp)
+        return
+    
+    @app.route("/get-config", methods=["GET"])
+    def get_config():
+        conf = get_arduino_conf()
+        return {
+            "enable_manual": bool(conf["manual_open"] & 2),
+            "open_manual": bool(conf["manual_open"] & 1),
+            "open_temperature": conf["open_temperature"],
+            "close_temperature": conf["close_temperature"]
+        }
 
-        # communicate with the arduino
-        try:
-            output, _ = arduino_io.communicate(encode_input(instructions), 0.5)
-        except TimeoutExpired:
-            print("Communication failed")
-
-        return decode_output(output)
+    @app.route("/graph", methods=["GET"])
+    def get_graph():
+        return get_graph_data(time.time() - request.form.get("lookback"))
     
     return app

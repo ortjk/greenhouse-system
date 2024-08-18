@@ -22,5 +22,8 @@ greenhouse-website/yarn-debug.log*
 greenhouse-website/yarn-error.log*
 
 # server (python flask) ignores
-greenhouse-website/instance
 greenhouse-website/server/__pycache__
+greenhouse-website/server/arduino/__pycache__
+greenhouse-website/server/database/__pycache__
+greenhouse-website/instance
+greenhouse-website/database.db

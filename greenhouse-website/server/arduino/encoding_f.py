@@ -1,28 +1,28 @@
 from struct import pack, unpack
 from math import floor, ceil
 
-def round_with_half(input: float) -> tuple[int, int]:
-    half = input % 0.5
-    if input - floor(input) >= 0.5:
+def round_with_half(num: float) -> tuple[int, int]:
+    half = num % 0.5
+    if num - floor(num) >= 0.5:
         if half > 0.25:
             # round up with no half
             half = 0
-            input = int(ceil(input))
+            num = int(ceil(num))
         else:
             # round down and add a half
             half = 1
-            input = int(floor(input))
+            num = int(floor(num))
     else:
         if half > 0.25:
             # round down and add a half
             half = 1
-            input = int(floor(input))
+            num = int(floor(num))
         else:
             # round down with no half
             half = 0
-            input = int(floor(input))
+            num = int(floor(num))
 
-    return input, half
+    return num, half
 
 def encode_input(x: dict) -> bytes:
     if x is None: 
@@ -42,7 +42,6 @@ def encode_input(x: dict) -> bytes:
     close_temp = (close_temp << 1) | hc
 
     return pack('i', manual_open | open_temp | close_temp)
-
 
 def decode_output(x: bytes) -> dict:
     x = unpack('i', x)[0]
