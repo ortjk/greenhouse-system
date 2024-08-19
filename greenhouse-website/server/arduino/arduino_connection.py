@@ -33,7 +33,7 @@ while True:
             last_graph = time.time()
             add_graph_entry(int(last_graph), output["temperature"], output["humidity"], output["error"])
 
-    ardu_conf = encode_input(get_arduino_conf())
+    ardu_conf = encode_input(get_arduino_conf()) + b'\n'
     arduino.write(ardu_conf)
     
     time.sleep(0.5)

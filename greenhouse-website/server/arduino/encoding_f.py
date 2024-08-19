@@ -41,7 +41,7 @@ def encode_input(x: dict) -> bytes:
     close_temp, hc = round_with_half(close_temp)
     close_temp = (close_temp << 1) | hc
 
-    return pack('i', manual_open | open_temp | close_temp)
+    return pack('i', manual_open | open_temp | close_temp).removesuffix(b'\x00\x00')
 
 def decode_output(x: bytes) -> dict:
     x = int.from_bytes(x)

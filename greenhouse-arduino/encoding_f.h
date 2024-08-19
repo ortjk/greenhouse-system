@@ -49,7 +49,20 @@ unsigned short encodeOutput(bool* status, float* temperature, float* humidity)
     return x;
 }
 
-void decodeInput(Setpoints* setpoints)
+void decodeInput(byte* lower, byte* upper, Setpoints* setpoints)
 {
-    
+    setpoints->manualEnable = *upper >> 7;
+    setpoints->manualOpen = (*upper >> 6) & 1;
+
+    setpoints->maxTemperature = *upper & ((1 << 6) - 1);
+    if (*lower >> 7)
+    {
+        setpoints->maxTemperature += 0.5f;
+    }
+
+    setpoints->minTemperature = (*lower >> 1) & ((1 << 6) - 1);
+    if (*lower & 1)
+    {
+        setpoints->minTemperature += 0.5f;
+    }
 }

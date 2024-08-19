@@ -33,6 +33,13 @@ void publishTemperature()
   Serial.write(output, 3);
 }
 
+void refreshSetpoints()
+{
+  byte input [2];
+  Serial.readBytesUntil('\n', input, 2);
+  decodeInput(&input[0], &input[1], &setpoints);
+}
+
 void setup() 
 {
   Serial.begin(9600);
@@ -46,28 +53,18 @@ void setup()
 
 void loop() 
 {
-  // check temperature
-  // note: reading temperature takes an additional ~250ms
   unsigned long currentTime = millis();
   if (currentTime - previousDHT >= DHT_INTERVAL)
   {
+    // check temperature
+    // note: reading temperature takes an additional ~250ms
     publishTemperature();
 
-    /*
-    if (temperature >= ACTUATOR_THRESHOLD)
-    {
-      digitalWrite(ACTUATOR_PIN, HIGH); // open the windows
-    }
-    else
-    {
-      digitalWrite(ACTUATOR_PIN, HIGH); // close the windows
-    }
-    */
+    // retrieve setpoints
+    refreshSetpoints();
 
     previousDHT = currentTime;
   }
 
-  // TODO add serial communication with raspberry pi
-
-  delay(10); // delay for stability
+  delay(10); // delay 10ms for stability
 }
