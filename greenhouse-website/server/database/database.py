@@ -20,7 +20,7 @@ queries = {
 # helper functions
 
 def db() -> tuple[sql.Connection, sql.Cursor]:
-    con = sql.connect("../database.db")
+    con = sql.connect("./database.db")
     return con, con.cursor()
 
 def init_conf() -> None:
@@ -99,8 +99,9 @@ def set_arduino_conf(man_enabled: bool, man_open: bool, open_temp: float, close_
     con.commit()
 
     # add new config
-    cur.execute(queries["add_config"], (int(man_enabled), int(man_open), open_temp, close_temp))
+    cur.execute(queries["add_config"], (int(man_enabled), int(man_open), float(open_temp), float(close_temp)))
     con.commit()
+    
     return
 
 def get_graph_data(maxtime: int) -> dict[str:list[int], str:list[float], str:list[float], str:list[bool]]:

@@ -1,7 +1,7 @@
 import os
 import time
 from subprocess import Popen, PIPE, TimeoutExpired
-from flask import Flask, request
+from flask import Flask, request, redirect
 
 from server.database import get_arduino_conf, set_arduino_conf, get_graph_data
 
@@ -31,16 +31,29 @@ def create_app(test_config=None):
 
     @app.route("/set-config", methods=["POST"])
     def set_config():
+        form_map = {
+            "off": 0,
+            "on": 1,
+            '': 0,
+            None: 0,
+        }
+        
         # get information from form
-        manual_enabled = request.form.get("enableManualCheck")
-        manual_open = request.form.get("openWindowCheck")
+        manual_enabled = form_map[request.form.get("enable-switch-value")]
+        manual_open = form_map[request.form.get("open-switch-value")]
 
-        open_temp = request.form.get("openTemperatureValue")
-        close_temp = request.form.get("closeTemperatureValue")
+        open_temp = request.form.get("open-temperature-value")
+        close_temp = request.form.get("close-temperature-value")
+
+        # attempt to catch bad values
+        open_temp = form_map.get(open_temp, open_temp)
+        open_temp = float(open_temp)
+        close_temp = form_map.get(close_temp, close_temp)
+        close_temp = float(close_temp)
 
         # save information to database
         set_arduino_conf(manual_enabled, manual_open, open_temp, close_temp)
-        return
+        return redirect("/", code=302)
     
     @app.route("/get-config", methods=["GET"])
     def get_config():

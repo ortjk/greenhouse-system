@@ -1,0 +1,32 @@
+.form-group {
+    margin-top: 2em;
+}
+
+.form-container {
+    padding-left: 1em;
+}
+
+.switch-field-container {
+    display: grid;
+    grid-template-columns: 50% auto;
+    grid-template-rows: auto;
+    align-items: center;
+}
+
+.numeric-field-container {
+    margin-bottom: 0.5em;
+
+    display: grid;
+    grid-template-columns: 50% auto auto;
+    grid-template-rows: auto;
+    align-items: center;
+}
+
+.switch-label {
+    margin-left: 1em;
+    margin-right: 1em;
+}
+
+.submit-button {
+    
+}
