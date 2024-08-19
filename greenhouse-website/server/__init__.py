@@ -7,7 +7,7 @@ from server.database import get_arduino_conf, set_arduino_conf, get_graph_data
 
 def create_app(test_config=None):
     # start communication with arduino
-    # arduino_io = Popen(["python3", "server/arduino/arduino_connection.py"], stdin=PIPE, stdout=PIPE)
+    arduino_io = Popen(["python3", "server/arduino/arduino_connection.py"])
 
 
     # create and configure the app

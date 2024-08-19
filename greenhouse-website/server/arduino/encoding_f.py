@@ -44,8 +44,7 @@ def encode_input(x: dict) -> bytes:
     return pack('i', manual_open | open_temp | close_temp)
 
 def decode_output(x: bytes) -> dict:
-    x = unpack('i', x)[0]
-    print(x)
+    x = int.from_bytes(x)
 
     # get error status bit
     status = (1 << 15) & x
@@ -55,7 +54,7 @@ def decode_output(x: bytes) -> dict:
     if bool((1 << 8) & x):
         temperature += 0.5
 
-    humidity = ((1 << 6) - 1) & (x >> 1)
+    humidity = ((1 << 7) - 1) & (x >> 1)
     if bool(1 & x):
         humidity += 0.5
 
