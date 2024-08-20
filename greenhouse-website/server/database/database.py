@@ -1,4 +1,6 @@
 import sqlite3 as sql
+import time
+from datetime import datetime
 import numpy as np
 
 queries = {
@@ -16,6 +18,65 @@ queries = {
     "remove_old_graph_entries": "DELETE FROM Graph WHERE timestamp < ?",
     "add_graph_entry": "INSERT INTO Graph VALUES (?, ?, ?, ?)",
 }
+
+strptime_map = [
+    "%b %d %-I:%M%p",
+    "%b %d %-I%p",
+    "%b %d"
+]
+
+def push_average(sums: list[int, float, float, int], count: int, averages: list, map_index: int):
+    temp = []
+
+    date = datetime.strptime(time.ctime(sums[0] / count),  "%a %b %d %H:%M:%S %Y")
+    date = date.strftime(strptime_map[map_index])
+
+    temp.append(date)
+    temp.append("{:.2f}".format(sums[1] / count))
+    temp.append("{:.2f}".format(sums[2] / count))
+
+    if (sums[3] / count > 0):
+        temp.append(True)
+    else:
+        temp.append(False)
+        
+    averages.append({'Time': temp[0], 'Temperature': temp[1], 'Humidity': temp[2], 'Error': temp[3]})
+
+def average_entries(data: list[tuple[int, float, float, int]], map_index: int) -> list[dict[str:str, str:float, str:float, str:bool]]:
+    arr = []
+
+    group = 1
+    if map_index == 1:
+        group = 60
+    elif map_index == 2:
+        group = 60 * 24
+
+    i = 0
+    sums = [0, 0, 0, 0]
+    c = 0
+    current = 0
+
+    while i < len(data):
+        if (current == 0):
+            current = data[i][0] // (group * 60)
+        elif (data[i][0] // (group * 60) != current):
+            push_average(sums, c, arr, map_index)
+
+            sums = [0, 0, 0, 0]
+            c = 0
+            current = 0
+
+        for q in range(4):
+            sums[q] += data[i][q]
+
+        c += 1
+        i += 1
+
+    # cleanup
+    if c > 0:
+        push_average(sums, c, arr, map_index)
+
+    return arr
 
 # helper functions
 
@@ -68,16 +129,6 @@ def confs_to_dict(confs: list[tuple[int, int, float, float]]) -> dict[str:int, s
 
     return
 
-def entries_to_dict(entries: list[tuple[float, float, float, float]]) -> dict[str:list[int], str:list[float], str:list[float], str:list[bool]]:
-    entries = np.transpose(entries)
-
-    return {
-        "timestamps": list(entries[0]),
-        "temperatures": list(entries[1]),
-        "humidities": list(entries[2]),
-        "errors": list(entries[3])
-    }
-
 # exported functions
 
 def get_arduino_conf() -> dict[str:bool, str:bool, str:float, str:float]:
@@ -104,13 +155,13 @@ def set_arduino_conf(man_enabled: bool, man_open: bool, open_temp: float, close_
     
     return
 
-def get_graph_data(maxtime: int) -> dict[str:list[int], str:list[float], str:list[float], str:list[bool]]:
+def get_graph_data(maxtime: int) -> list[tuple[int, float, float, bool]]: # dict[str:list[int], str:list[float], str:list[float], str:list[bool]]:
     init_graph()
 
     con, cur = db()
 
     entries = cur.execute(queries["get_graph_data"], (maxtime,)).fetchall()
-    return entries_to_dict(entries)
+    return entries
 
 def add_graph_entry(timestamp: int, temperature: float, humidity: float, has_error: bool) -> None:
     init_graph()

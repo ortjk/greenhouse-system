@@ -1,17 +1,7 @@
-import io
-from time import sleep
-import serial
+import numpy as np
 
-arduino = serial.Serial(port="/dev/tty.usbmodem1301", 
-                        baudrate=9600,
-                        timeout=2)
+xs = [(1, 2, 3), (3, 4, 5)]
 
-while True:
-    raw = arduino.readline().removesuffix(b'\n')
-    print(raw)
-    if raw == b'':
-        print("empty")
-    else:
-        print(int.from_bytes(raw))
+xs = np.transpose(xs)
 
-    sleep(3)
+print(xs.mean(1))

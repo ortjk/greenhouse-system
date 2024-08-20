@@ -1,9 +1,10 @@
 import os
 import time
+from datetime import datetime
 from subprocess import Popen, PIPE, TimeoutExpired
 from flask import Flask, request, redirect
 
-from server.database import get_arduino_conf, set_arduino_conf, get_graph_data
+from server.database import get_arduino_conf, set_arduino_conf, get_graph_data, average_entries, strptime_map
 
 def create_app(test_config=None):
     # start communication with arduino
@@ -67,6 +68,34 @@ def create_app(test_config=None):
 
     @app.route("/graph", methods=["GET"])
     def get_graph():
-        return get_graph_data(time.time() - request.form.get("lookback"))
+        try:
+            lookback = request.args["lookback"]
+        except IndexError:
+            return {'error': "Missing 'lookback' parameter"}, 400
+        try:
+            period = request.args["period"]
+        except IndexError:
+            return {'error': "Missing 'period' parameter"}, 400
+        
+        try:
+            lookback = int(lookback)
+        except TypeError:
+            return {'error': "Parameter 'lookback' is not numeric"}, 400
+        try:
+            period = int(period)
+        except TypeError:
+            return {'error': "Parameter 'period' is not numeric"}, 400
+        
+        t = time.time()
+        data = get_graph_data(t - lookback)
+
+        if period <= 61:
+            data = average_entries(data, 0)
+        elif period <= 3601:
+            data = average_entries(data, 1)
+        else:
+            data = average_entries(data, 2)
+
+        return {'data': data}
     
     return app

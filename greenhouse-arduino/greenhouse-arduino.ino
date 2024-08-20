@@ -25,12 +25,13 @@ void publishTemperature()
 
   unsigned short encoded = encodeOutput(&statusERROR, &temperature, &humidity);
 
-  byte output [3];
-  output[0] = (encoded >> 8) & 0xFF;
-  output[1] = encoded & 0xFF;
-  output[2] = '\n';
+  byte output [4];
+  output[0] = 0xFE;
+  output[1] = (encoded >> 8) & 0xFF;
+  output[2] = encoded & 0xFF;
+  output[3] = 0xFF;
   
-  // Serial.write(output, 3);
+  Serial.write(output, 4);
 }
 
 void receiveData(byte* input)
@@ -66,12 +67,6 @@ void receiveData(byte* input)
     {
       inProgress = true;
     }
-  }
-
-  // clear remaining buffer
-  while (Serial.available() > 0)
-  {
-    Serial.read();
   }
 }
 
