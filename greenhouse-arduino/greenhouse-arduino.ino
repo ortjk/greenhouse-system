@@ -30,14 +30,85 @@ void publishTemperature()
   output[1] = encoded & 0xFF;
   output[2] = '\n';
   
-  Serial.write(output, 3);
+  // Serial.write(output, 3);
+}
+
+void receiveData(byte* input)
+{
+  bool finished = false;
+  bool inProgress = false;
+  byte ndx = 0;
+  byte rc;
+
+  while (Serial.available() > 0 && !finished)
+  {
+    rc = Serial.read();
+
+    if (inProgress)
+    {
+      if (rc != 0xFF)
+      {
+        input[ndx] = rc;
+        ndx++;
+        if (ndx >= 2)
+        {
+          ndx = 1;
+        }
+      }
+      else
+      {
+        inProgress = false;
+        ndx = 0;
+        finished = true;
+      }
+    }
+    else if (rc == 0xFE)
+    {
+      inProgress = true;
+    }
+  }
+
+  // clear remaining buffer
+  while (Serial.available() > 0)
+  {
+    Serial.read();
+  }
 }
 
 void refreshSetpoints()
 {
-  byte input [2];
-  Serial.readBytesUntil('\n', input, 2);
-  decodeInput(&input[0], &input[1], &setpoints);
+  if (Serial.available() > 0)
+  {
+    byte input [2];
+    receiveData(input);
+    decodeInput(&input[0], &input[1], &setpoints);
+  }
+}
+
+void controlWindows()
+{
+  if (setpoints.manualEnable)
+  {
+    if (setpoints.manualOpen)
+    {
+      digitalWrite(MOTOR_PIN, HIGH);
+    }
+    else
+    {
+      digitalWrite(MOTOR_PIN, LOW);
+    }
+  }
+  else
+  {
+    if (temperature > setpoints.maxTemperature)
+    {
+      digitalWrite(MOTOR_PIN, HIGH);
+    }
+    else if (temperature < setpoints.minTemperature)
+    {
+      digitalWrite(MOTOR_PIN, LOW);
+    }
+  }
 }
 
 void setup() 
@@ -65,6 +136,9 @@ void loop()
 
     previousDHT = currentTime;
   }
+
+  // control windows based on state
+  controlWindows();
 
   delay(10); // delay 10ms for stability
 }
