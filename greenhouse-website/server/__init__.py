@@ -30,8 +30,10 @@ def create_app(test_config=None):
     except OSError:
         pass
 
+    # api call for setting the arduino config
     @app.route("/set-config", methods=["POST"])
     def set_config():
+        # map to decode some unusable values
         form_map = {
             "off": 0,
             "on": 1,
@@ -42,7 +44,6 @@ def create_app(test_config=None):
         # get information from form
         manual_enabled = form_map[request.form.get("enable-switch-value")]
         manual_open = form_map[request.form.get("open-switch-value")]
-
         open_temp = request.form.get("open-temperature-value")
         close_temp = request.form.get("close-temperature-value")
 
@@ -56,6 +57,7 @@ def create_app(test_config=None):
         set_arduino_conf(manual_enabled, manual_open, open_temp, close_temp)
         return redirect("/", code=302)
     
+    # api call for getting the current arduino config
     @app.route("/get-config", methods=["GET"])
     def get_config():
         conf = get_arduino_conf()
@@ -66,8 +68,10 @@ def create_app(test_config=None):
             "close_temperature": conf["close_temperature"]
         }
 
+    # api call for getting graph data
     @app.route("/graph", methods=["GET"])
     def get_graph():
+        # attempt to retrieve time to look back and periodicity
         try:
             lookback = request.args["lookback"]
         except IndexError:
@@ -77,6 +81,7 @@ def create_app(test_config=None):
         except IndexError:
             return {'error': "Missing 'period' parameter"}, 400
         
+        # attempt to convert values to integers
         try:
             lookback = int(lookback)
         except TypeError:
@@ -86,9 +91,11 @@ def create_app(test_config=None):
         except TypeError:
             return {'error': "Parameter 'period' is not numeric"}, 400
         
+        # get the data from database
         t = time.time()
         data = get_graph_data(t - lookback)
 
+        # average data and format timestamps based on periodicity
         if period <= 61:
             data = average_entries(data, 0)
         elif period <= 3601:

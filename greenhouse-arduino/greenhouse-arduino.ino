@@ -11,13 +11,14 @@ unsigned long previousDHT = 0;
 float humidity = 50;
 float temperature = 25;
 
-Setpoints setpoints;
+Setpoints setpoints; // window configuration defined in encoding_f.h
 
 bool statusERROR = false;
 
 DHT dht(3, DHT22); // digital pin 3
 // dht requires 10k resistor accross the Vin and data pins
 
+// read the dht sensor and push data to serial bus
 void publishTemperature()
 {
   humidity = dht.readHumidity();
@@ -25,6 +26,7 @@ void publishTemperature()
 
   unsigned short encoded = encodeOutput(&statusERROR, &temperature, &humidity);
 
+  // data must be couched by beginning and ending bytes
   byte output [4];
   output[0] = 0xFE;
   output[1] = (encoded >> 8) & 0xFF;
@@ -34,6 +36,8 @@ void publishTemperature()
   Serial.write(output, 4);
 }
 
+// helper function to read the configuration sent by the pi;
+// just Serial.readBytes() does not always capture all data
 void receiveData(byte* input)
 {
   bool finished = false;
@@ -47,6 +51,7 @@ void receiveData(byte* input)
 
     if (inProgress)
     {
+      // if the byte read is NOT the end of message byte, save the byte and prepare to read the next
       if (rc != 0xFF)
       {
         input[ndx] = rc;
@@ -56,6 +61,7 @@ void receiveData(byte* input)
           ndx = 1;
         }
       }
+      // else the byte read IS the end of message byte, and the reading process can stop
       else
       {
         inProgress = false;
@@ -63,6 +69,8 @@ void receiveData(byte* input)
         finished = true;
       }
     }
+    // if a byte has been read without the reading process starting yet
+    // and the byte is the message beginning, start reading
     else if (rc == 0xFE)
     {
       inProgress = true;
@@ -70,6 +78,7 @@ void receiveData(byte* input)
   }
 }
 
+// read the serial bus and saves the configuration sent
 void refreshSetpoints()
 {
   if (Serial.available() > 0)
@@ -80,9 +89,10 @@ void refreshSetpoints()
   }
 }
 
+// do control output based on current configuration
 void controlWindows()
 {
-  if (setpoints.manualEnable)
+  if (setpoints.manualEnable) // manual controls take priority
   {
     if (setpoints.manualOpen)
     {
@@ -93,7 +103,7 @@ void controlWindows()
       digitalWrite(MOTOR_PIN, LOW);
     }
   }
-  else
+  else // change state based on temperature setpoints
   {
     if (temperature > setpoints.maxTemperature)
     {
@@ -122,11 +132,9 @@ void loop()
   unsigned long currentTime = millis();
   if (currentTime - previousDHT >= DHT_INTERVAL)
   {
-    // check temperature
-    // note: reading temperature takes an additional ~250ms
+    // note: reading sensor takes an additional ~250ms
     publishTemperature();
 
-    // retrieve setpoints
     refreshSetpoints();
 
     previousDHT = currentTime;

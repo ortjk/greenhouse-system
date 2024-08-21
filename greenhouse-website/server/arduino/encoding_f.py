@@ -1,6 +1,10 @@
 from struct import pack, unpack
 from math import floor, ceil
 
+# round a float to a binary representation of the form 0b...XXXXXXY, where:
+# X is the n-bit binary whole number portion
+# Y is a bit that adds one half
+# e.g. 28.67 -> 111001 -> 28 + 0.5 -> 28.5
 def round_with_half(num: float) -> tuple[int, int]:
     half = num % 0.5
     if num - floor(num) >= 0.5:
@@ -24,6 +28,10 @@ def round_with_half(num: float) -> tuple[int, int]:
 
     return num, half
 
+# encode setpoints to a binary representation of the form 0bXXYY_YYYY_YZZZ_ZZZZ, where:
+# X is the manual control override (enable and open)
+# Y is the maximum temperature setpoint (max 63.5)
+# Z is the minimum temperature setpoint (max 63.5)
 def encode_input(x: dict) -> bytes:
     if x is None: 
         return None
@@ -43,6 +51,10 @@ def encode_input(x: dict) -> bytes:
 
     return pack('i', manual_open | open_temp | close_temp).removesuffix(b'\x00\x00')
 
+# decode temperature, humidity, and status from a binary representation of the form 0bXYYY_YYYY_ZZZZ_ZZZZ, where:
+# X is the error status
+# Y is the binary representation of temperature (max 63.5)
+# Z is the binary representation of humidity (max 127.5)
 def decode_output(x: bytes) -> dict:
     x = int.from_bytes(x)
 

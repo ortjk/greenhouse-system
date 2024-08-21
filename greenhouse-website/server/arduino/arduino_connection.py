@@ -18,10 +18,14 @@ from server.database import get_arduino_conf, add_graph_entry
 # close window temperature (int7)
 # 2 bytes needed
 
+# open up serial port
 arduino = serial.Serial(port="/dev/tty.usbmodem1301", 
                         baudrate=9600,
                         timeout=2)
 
+# helper function to read data coming from arduino
+# necessary as Serial read functions alone don't always capture all data properly
+# see greenhouse-arduino/greenhouse-arduino.ino for a description of a similar function
 def read_arduino():
     finished = False
     started = False
@@ -47,9 +51,9 @@ def read_arduino():
     return raw[0] + raw[1]
 
 graph_time = 60 # add a new graph entry every 60 seconds
-last_graph = 0
+last_graph = 0 # timestamp of last graph entry
 
-last_conf = b''
+last_conf = b'' # keep track of last configuration sent
 
 while True:
     if time.time() - last_graph >= graph_time:

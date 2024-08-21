@@ -1,7 +1,6 @@
 import sqlite3 as sql
 import time
 from datetime import datetime
-import numpy as np
 
 queries = {
     # config table queries
@@ -19,16 +18,20 @@ queries = {
     "add_graph_entry": "INSERT INTO Graph VALUES (?, ?, ?, ?)",
 }
 
+# different ways to convert datetime objects
 strptime_map = [
     "%b %d %-I:%M%p",
     "%b %d %-I%p",
     "%b %d"
 ]
 
+# helper function to average the sums in a list, and format times
 def push_average(sums: list[int, float, float, int], count: int, averages: list, map_index: int):
     temp = []
 
+    # convert time since Epoch to datetime object
     date = datetime.strptime(time.ctime(sums[0] / count),  "%a %b %d %H:%M:%S %Y")
+    # convert datetime object to string representation
     date = date.strftime(strptime_map[map_index])
 
     temp.append(date)
@@ -42,8 +45,9 @@ def push_average(sums: list[int, float, float, int], count: int, averages: list,
         
     averages.append({'Time': temp[0], 'Temperature': temp[1], 'Humidity': temp[2], 'Error': temp[3]})
 
+# average the timestamped temperature and humidity data from the database
 def average_entries(data: list[tuple[int, float, float, int]], map_index: int) -> list[dict[str:str, str:float, str:float, str:bool]]:
-    arr = []
+    arr = [] # return list
 
     group = 1
     if map_index == 1:
@@ -51,42 +55,45 @@ def average_entries(data: list[tuple[int, float, float, int]], map_index: int) -
     elif map_index == 2:
         group = 60 * 24
 
-    i = 0
-    sums = [0, 0, 0, 0]
-    c = 0
-    current = 0
+    i = 0 # increment
+    sums = [0, 0, 0, 0] # running sums
+    c = 0 # running count
+    current = 0 # current time group (minute, hour, or day)
 
     while i < len(data):
-        if (current == 0):
-            current = data[i][0] // (group * 60)
-        elif (data[i][0] // (group * 60) != current):
+        if (current == 0): # if no time group has been selected
+            # set the time group to the examined entry
+            current = data[i][0] // (group * 60) 
+        elif (data[i][0] // (group * 60) != current): # else check if the examined entry is NOT part of the same time group
+            # the running average can be calculated and added to the return list
             push_average(sums, c, arr, map_index)
 
+            # reset running variables
             sums = [0, 0, 0, 0]
             c = 0
             current = 0
 
+        # add current entry to running sums
         for q in range(4):
             sums[q] += data[i][q]
 
+        # increment
         c += 1
         i += 1
 
-    # cleanup
+    # cleanup trailing running variables
     if c > 0:
         push_average(sums, c, arr, map_index)
 
     return arr
 
-# helper functions
-
+# shortcut to get connection and cursor
 def db() -> tuple[sql.Connection, sql.Cursor]:
     con = sql.connect("./database.db")
     return con, con.cursor()
 
+# adds the config table to database if it doesn't already exist and adds a default configuration
 def init_conf() -> None:
-    # adds the config table if it doesn't already exist and adds a default configuration
-
     con, cur = db()
 
     cur.execute(queries["create_config_table"])
@@ -97,6 +104,7 @@ def init_conf() -> None:
     con.commit()
     return
 
+# adds the graph table to database if it doesn't already exist and adds a default configuration
 def init_graph() -> None:
     con, cur = db()
 
@@ -105,6 +113,7 @@ def init_graph() -> None:
     con.commit()
     return
 
+# convert a query result of arduino configs to a dictionary format
 def confs_to_dict(confs: list[tuple[int, int, float, float]]) -> dict[str:int, str:float, str:float]:
     if len(confs) > 0:
         c = confs[0]
@@ -129,8 +138,7 @@ def confs_to_dict(confs: list[tuple[int, int, float, float]]) -> dict[str:int, s
 
     return
 
-# exported functions
-
+# get the arduino configuration table entries and convert them to dictionary format
 def get_arduino_conf() -> dict[str:bool, str:bool, str:float, str:float]:
     init_conf()
 
@@ -140,6 +148,7 @@ def get_arduino_conf() -> dict[str:bool, str:bool, str:float, str:float]:
 
     return confs_to_dict(records)
 
+# set a new custom arduino config
 def set_arduino_conf(man_enabled: bool, man_open: bool, open_temp: float, close_temp: float) -> None:
     init_conf()
 
@@ -155,7 +164,8 @@ def set_arduino_conf(man_enabled: bool, man_open: bool, open_temp: float, close_
     
     return
 
-def get_graph_data(maxtime: int) -> list[tuple[int, float, float, bool]]: # dict[str:list[int], str:list[float], str:list[float], str:list[bool]]:
+# get the graph data entries back to a passed timestamp
+def get_graph_data(maxtime: int) -> list[tuple[int, float, float, bool]]:
     init_graph()
 
     con, cur = db()
@@ -163,16 +173,17 @@ def get_graph_data(maxtime: int) -> list[tuple[int, float, float, bool]]: # dict
     entries = cur.execute(queries["get_graph_data"], (maxtime,)).fetchall()
     return entries
 
+# add a new graph data entry
 def add_graph_entry(timestamp: int, temperature: float, humidity: float, has_error: bool) -> None:
     init_graph()
 
     con, cur = db()
 
-    # TODO set max limit to a changeable value
     # remove old entries
-    cur.execute(queries["remove_old_graph_entries"], (60 * 60 * 24 * 30,))
+    cur.execute(queries["remove_old_graph_entries"], (3600 * 24 * 30,)) # remove entries over one month old
     con.commit()
 
+    # add the new entry
     cur.execute(queries["add_graph_entry"], (timestamp, temperature, humidity, int(has_error)))
     con.commit()
 

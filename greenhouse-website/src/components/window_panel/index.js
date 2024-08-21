@@ -33,7 +33,6 @@ export default function WindowPanel({url, entries}) {
         true: {}
     };
 
-
     return (
         <Card>
             <Card.Body>
